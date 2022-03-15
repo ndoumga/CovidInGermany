@@ -1,0 +1,196 @@
+SELECT *
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+
+--------------------------------- Infections-----------------------------------------------
+
+------------------- Total Cases Per Million / Biggest 15 European Countries ---------------
+
+SELECT location , ROUND(MAX(total_cases)/MAX(population) * 1000000, 0) AS InfectionsPerMillion
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+WHERE continent = "Europe" AND population IN (
+                                                SELECT DISTINCT population
+                                                FROM `abstract-banner-341213.Covid_data.cov_deaths`
+                                                WHERE continent = "Europe"
+                                                ORDER BY population DESC
+                                                LIMIT 15     
+                                             )
+GROUP BY location
+
+
+-------------------- Total Cases in Europe (excluding Germany) ----------------------------
+SELECT location, MAX( total_cases-(
+                                    SELECT MAX(total_cases) 
+                                    FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+                                    WHERE location = "Germany"
+                                    )
+                    ) AS TotalCases,
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+WHERE location = "Europe"
+GROUP BY location
+
+--------------------- Total Cases in Europe per Million Excl. Germany --------------------------
+SELECT "Europe", ROUND (MAX( total_cases-(
+                                            SELECT MAX(total_cases) 
+                                            FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+                                            WHERE location = "Germany"
+                                         )
+                            )
+                            /
+                            (
+                                SELECT SUM(DISTINCT population)
+                                FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+                                WHERE continent = "Europe" AND location != "Germany"
+                            ) * 1000000, 2) AS CasesPerMillion
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+WHERE location = "Europe"
+
+--------------------------------------- Total Cases in Germany --------------------------------
+SELECT location, MAX(total_cases) AS TotalCases
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+WHERE location = "Germany"
+GROUP BY location
+
+---------------------------------  Total Cases in Germany  Per Million --------------------------
+
+SELECT location, population, MAX(total_cases) AS TotalCases, ROUND(MAX(total_cases)/population * 1000000, 2) AS CasesPerMillion
+FROM `abstract-banner-341213.Covid_data.cov_deaths`
+WHERE location = "Germany"
+GROUP BY location, population
+
+--------------------------------------------- Deaths --------------------------------------------
+--------------------------------- Total deaths in Europe (excluding Germany)---------------------
+SELECT location, MAX( total_deaths-(
+                                    SELECT MAX(total_deaths) 
+                                    FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+                                    WHERE location = "Germany"
+                                    )
+                    ) AS TotalDeaths,
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+WHERE location = "Europe"
+GROUP BY location
+
+------------------------ Total Death in Europe per 100 (excluding Germany)-------------------------
+SELECT "Europe", ROUND (MAX( total_deaths-(
+                                            SELECT MAX(total_deaths) 
+                                            FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+                                            WHERE location = "Germany"
+                                         )
+                            )
+                            /
+                            (
+                                SELECT SUM(DISTINCT population)
+                                FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+                                WHERE continent = "Europe" AND location != "Germany"
+                            ) * 100, 2) AS DeathsPer100
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+WHERE location = "Europe"
+
+
+--------------------------------- Death rates in Europe biggest 15 Countries ----------------------------------------
+
+SELECT location , ROUND( 100 - (MAX(total_deaths)/MAX(total_cases) * 100), 2) AS SurvivalRate
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+WHERE continent = "Europe" AND population IN (
+                                                SELECT DISTINCT population
+                                                FROM `abstract-banner-341213.Covid_data.cov_deaths`
+                                                WHERE continent = "Europe"
+                                                ORDER BY population DESC
+                                                LIMIT 15     
+                                             )
+GROUP BY location
+
+------------------------------------- Total Deaths in Germany ---------------------------------------
+SELECT location, MAX(total_deaths) AS TotalDeaths
+FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+WHERE location = "Germany"
+GROUP BY location
+
+------------------------------------ Deaths per 100 in Germany ---------------------------------------
+SELECT location, population, MAX(total_deaths) AS TotalDeaths, ROUND(MAX(total_deaths)/population * 100, 2) AS DeathsPer100
+FROM `abstract-banner-341213.Covid_data.cov_deaths`
+WHERE location = "Germany"
+GROUP BY location, population
+
+--------------------------- Death rate vs time --------------------------------------------------------
+
+SELECT dea.location, dea.date, vax.people_fully_vaccinated AS FullVaccinations, ROUND(vax.people_fully_vaccinated/population * 100 , 2) AS VacinationRatePer100
+FROM `abstract-banner-341213.Covid_data.cov_deaths` AS dea
+JOIN `abstract-banner-341213.Covid_data.cov_vax` as vax
+ON dea.date = vax.date AND dea.location = vax.location
+WHERE dea.continent = "Europe"
+ORDER BY location, date 
+
+
+----------------------------------------- Vaccinations -----------------------------------------------
+------------------ Total Vaccinations in Europe (excluding Germany) ----------------------------------
+
+SELECT location, MAX( vax.people_fully_vaccinated -(
+                                    SELECT MAX(people_fully_vaccinated) 
+                                    FROM `abstract-banner-341213.Covid_data.cov_vax`
+                                    WHERE location = "Germany"
+                                    )
+                    ) AS PeopleVaccinated,
+FROM `abstract-banner-341213.Covid_data.cov_vax` as vax
+WHERE location = "Europe"
+GROUP BY location
+
+----------------- Total Vaccinations in Europe per 100 (excluding Germany)------------------------------
+
+SELECT "Europe", ROUND (MAX( people_fully_vaccinated-(
+                                            SELECT MAX(people_fully_vaccinated) 
+                                            FROM `abstract-banner-341213.Covid_data.cov_vax` 
+                                            WHERE location = "Germany"
+                                         )
+                            )
+                            /
+                            (
+                                SELECT SUM(DISTINCT population)
+                                FROM `abstract-banner-341213.Covid_data.cov_deaths` 
+                                WHERE continent = "Europe" AND location != "Germany"
+                            ) * 100, 2) AS DeathsPer100
+FROM `abstract-banner-341213.Covid_data.cov_vax` 
+WHERE location = "Europe"
+
+
+-------------------------------------- Total Vaccinatios in Germany ---------------------------------------
+SELECT location, MAX(people_fully_vaccinated) AS PeopleVaccinated
+FROM `abstract-banner-341213.Covid_data.cov_vax`
+WHERE location = "Germany"
+GROUP BY location
+
+------------------------------------- Vaccinations per 100 in Germany---------------------------------------
+SELECT vax.location, dea.population, MAX(vax.people_fully_vaccinated) AS PeopleVaccinated, ROUND(MAX(vax.people_fully_vaccinated)/dea.population * 100, 2) AS VaccinationsPer100
+FROM `abstract-banner-341213.Covid_data.cov_vax` as vax
+JOIN `abstract-banner-341213.Covid_data.cov_deaths` as dea
+ON vax.location = dea.location AND vax.date = dea.date
+WHERE vax.location = "Germany"
+GROUP BY vax.location, dea.population
+
+
+-------------------------------- Impact of vaccination on death rate in EU ---------------------------------
+
+SELECT dea.location, dea.date, dea.total_deaths, ROUND(dea.total_deaths/dea.total_cases * 100, 2) as DeathRate, vax.people_fully_vaccinated, 
+        ROUND(vax.people_fully_vaccinated/population * 100 , 2) AS VacinationRatePer100
+FROM `abstract-banner-341213.Covid_data.cov_deaths` AS dea
+JOIN `abstract-banner-341213.Covid_data.cov_vax` as vax
+ON dea.date = vax.date AND dea.location = vax.location
+WHERE dea.continent = "Europe"
+ORDER BY dea.location, dea.date
+
+---------------------------------- Vaccination Rates in Germany vs Europe ---------------------------------
+--------------------------------------------- Europe ----------------------------------------------------
+
+SELECT dea.location, dea.date, vax.people_fully_vaccinated AS FullVaccinations, ROUND(vax.people_fully_vaccinated/population * 100 , 2) AS VacinationRatePer100
+FROM `abstract-banner-341213.Covid_data.cov_deaths` AS dea
+JOIN `abstract-banner-341213.Covid_data.cov_vax` as vax
+ON dea.date = vax.date AND dea.location = vax.location
+WHERE dea.location = "Europe"
+ORDER BY date 
+
+--------------------------------------------- DE -------------------------------------------------------- 
+SELECT dea.location, dea.date, vax.people_fully_vaccinated AS FullVaccinations, ROUND(vax.people_fully_vaccinated/population * 100 , 2) AS VacinationRatePer100
+FROM `abstract-banner-341213.Covid_data.cov_deaths` AS dea
+JOIN `abstract-banner-341213.Covid_data.cov_vax` as vax
+ON dea.date = vax.date AND dea.location = vax.location
+WHERE dea.location = "Germany"
+ORDER BY date 
